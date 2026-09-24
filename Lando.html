@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Absensi Kelas</title>
+<title>Absensi Kelas XI – Lando</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -49,6 +49,7 @@
   .setel .baris{margin-top:12px}
   #pesanSetel{margin-top:10px;font-size:.92rem}
   #pesanSetel.galat{color:var(--galat)}
+  #pesanSetel a{color:inherit}
 
   .pemindai{margin-top:16px;background:var(--papan);border-radius:18px;padding:14px;color:#fff}
   #reader{width:100%;border-radius:12px;overflow:hidden;background:#0f201b;min-height:240px;display:flex;align-items:center;justify-content:center}
@@ -129,10 +130,12 @@
   <section id="tab-setel" hidden>
     <div class="setel">
       <h2>Hubungkan ke spreadsheet</h2>
+      <p class="petunjuk" style="margin:4px 0 0">Spreadsheet: <b>ABSEN KELAS 11 Lando</b>. Langkah ini hanya sekali per perangkat.</p>
       <ol>
-        <li>Buka spreadsheet → Extensions → Apps Script, tempel <b>Code.gs</b>.</li>
-        <li>Deploy → New deployment → Web app. Execute as: <b>Me</b>. Who has access: <b>Anyone</b>.</li>
-        <li>Salin URL Web App (berakhiran <b>/exec</b>) dan tempel di bawah.</li>
+        <li>Di spreadsheet: <b>Extensions → Apps Script</b>, tempel <b>Code.gs</b>, simpan, lalu <b>Run tesKoneksi</b> dan klik <b>Allow</b>.</li>
+        <li><b>Deploy → New deployment → Web app</b>. Execute as: <b>Me</b>. Who has access: <b>Anyone</b>. Klik Deploy.</li>
+        <li>Salin URL yang berakhiran <b>/exec</b> (bisa dilihat lagi dari menu spreadsheet <b>Absensi QR → Tampilkan URL Web App</b>).</li>
+        <li>Tempel di bawah, lalu tekan tombol kuning.</li>
       </ol>
       <input id="inputUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false">
       <div class="baris">
@@ -199,24 +202,42 @@
    ===================================================================== */
 const API_URL_BAWAAN = '';
 const KUNCI_URL = 'absensi_api_url';
+let urlSesi = ''; // cadangan jika browser memblokir penyimpanan
 
 function ambilUrl() {
   if (API_URL_BAWAAN) return API_URL_BAWAAN;
+  if (urlSesi) return urlSesi;
   try { return localStorage.getItem(KUNCI_URL) || ''; } catch (_) { return ''; }
 }
-function simpanUrl(u) { try { localStorage.setItem(KUNCI_URL, u); } catch (_) {} }
+function simpanUrl(u) { urlSesi = u; try { localStorage.setItem(KUNCI_URL, u); } catch (_) {} }
 
-async function api(action, params, urlKhusus) {
-  const url = urlKhusus || ambilUrl();
-  if (!url) throw new Error('URL Web App belum diatur.');
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // tanpa preflight CORS
-    body: JSON.stringify(Object.assign({ action }, params || {}))
+const PESAN_GAGAL = 'Web App tidak merespons dengan benar. Periksa: (1) Who has access = Anyone, ' +
+  '(2) sudah Deploy dengan "New version", (3) sudah Run tesKoneksi lalu Allow, (4) URL berakhiran /exec.';
+
+/* Komunikasi dengan Apps Script memakai JSONP (tag <script>), sehingga tidak diblokir CORS
+   dan tetap jalan walau file dibuka dari hosting mana pun. */
+let nomorPanggilan = 0;
+function api(action, params, urlKhusus) {
+  const url = (urlKhusus || ambilUrl()).trim();
+  if (!url) return Promise.reject(new Error('URL Web App belum diatur. Tekan tombol "Koneksi".'));
+  return new Promise((ok, gagal) => {
+    const nama = '__absen' + Date.now() + '_' + (nomorPanggilan++);
+    const q = new URLSearchParams();
+    q.set('action', action);
+    Object.keys(params || {}).forEach(k => q.set(k, String(params[k])));
+    q.set('callback', nama);
+    q.set('_', Date.now());
+    const s = document.createElement('script');
+    let selesai = false;
+    const bersih = () => { clearTimeout(t); try { delete window[nama]; } catch (_) { window[nama] = undefined; } s.remove(); };
+    const gagalkan = () => { if (!selesai) { selesai = true; bersih(); gagal(new Error(PESAN_GAGAL)); } };
+    window[nama] = data => { if (selesai) return; selesai = true; bersih(); ok(data); };
+    s.onerror = gagalkan;
+    s.onload = () => setTimeout(gagalkan, 0); // termuat tapi bukan data absensi (mis. halaman login Google)
+    const t = setTimeout(gagalkan, 30000);
+    s.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + q.toString();
+    document.head.appendChild(s);
   });
-  const teks = await res.text();
-  try { return JSON.parse(teks); }
-  catch (_) { throw new Error('Balasan bukan data absensi. Pastikan akses Web App = "Anyone" dan URL berakhiran /exec.'); }
 }
 
 const $ = id => document.getElementById(id);
@@ -247,9 +268,14 @@ $('btnSimpanUrl').addEventListener('click', async () => {
   const u = $('inputUrl').value.trim();
   const p = $('pesanSetel');
   p.className = '';
-  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec\/?$/.test(u)) {
+  if (!/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[^/]+\/(exec|dev)\/?$/.test(u)) {
     p.className = 'galat';
     p.textContent = 'Format URL tidak sesuai. Contoh: https://script.google.com/macros/s/AKfy.../exec';
+    return;
+  }
+  if (/\/dev\/?$/.test(u)) {
+    p.className = 'galat';
+    p.textContent = 'Ini URL /dev (hanya untuk uji coba pemilik). Gunakan URL yang berakhiran /exec dari Deploy → Manage deployments.';
     return;
   }
   p.textContent = 'Menguji koneksi…';
@@ -257,11 +283,12 @@ $('btnSimpanUrl').addEventListener('click', async () => {
     const r = await api('kelas', {}, u);
     if (!r.ok) throw new Error(r.pesan);
     simpanUrl(u);
-    p.textContent = `Terhubung. Ditemukan ${r.kelas.length} kelas.`;
+    p.textContent = `Terhubung ke "${r.spreadsheet || 'spreadsheet'}". Ditemukan ${r.kelas.length} kelas: ${r.kelas.map(k => k.nama).join(', ')}.`;
     mulai();
   } catch (e) {
     p.className = 'galat';
-    p.textContent = 'Gagal terhubung: ' + pesanGalat(e);
+    p.innerHTML = 'Gagal terhubung: ' + esc(pesanGalat(e)) +
+      '<br>Cek: buka <a href="' + esc(u) + '" target="_blank" rel="noopener">URL ini di tab baru</a>. Harus muncul tulisan <b>Web App Absensi AKTIF</b>.';
   }
 });
 
@@ -272,6 +299,7 @@ async function mulai() {
   try {
     const r = await api('kelas');
     if (!r.ok) throw new Error(r.pesan);
+    if (!r.kelas.length) throw new Error('Terhubung, tetapi tidak ada sheet yang punya kolom "NAMA".');
     $('tgl').textContent = r.tanggal;
     $('kelas').innerHTML = r.kelas.map(k =>
       `<option value="${esc(k.nama)}">${esc(k.nama)}${k.adaJadwal ? ' • jadwal hari ini' : ''}</option>`).join('');
