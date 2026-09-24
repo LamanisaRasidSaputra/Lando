@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Absensi Kelas XI – Lando</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --papan:#1E3B33; --papan-2:#2A5145; --kertas:#F4F6F5; --tinta:#17211E; --redup:#66756F;
+    --garis:#D8DFDC; --kapur:#F6C744; --hadir:#1F9D63; --hadir-bg:#E3F5EC;
+    --galat:#C93C3C; --galat-bg:#FBE9E9; --info-bg:#FFF6DB;
+    --font:"Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:var(--font);background:var(--kertas);color:var(--tinta);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,select,input{font:inherit;color:inherit}
+  button{cursor:pointer}
+  :focus-visible{outline:3px solid var(--kapur);outline-offset:2px}
+
+  header{background:var(--papan);color:#fff;padding:18px 20px 0}
+  .atas{max-width:760px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+  h1{margin:0;font-size:1.45rem;font-weight:800;letter-spacing:-.01em}
+  .kanan{display:flex;align-items:center;gap:12px}
+  #tgl{color:#CFE0DA;font-size:.95rem}
+  #btnSetel{background:none;border:1px solid #5E8578;color:#CFE0DA;border-radius:8px;padding:4px 10px;font-size:.82rem}
+  nav{max-width:760px;margin:14px auto 0;display:flex;gap:4px}
+  nav button{background:none;border:0;color:#CFE0DA;padding:10px 16px;border-radius:10px 10px 0 0;font-weight:600}
+  nav button[aria-selected="true"]{background:var(--kertas);color:var(--tinta)}
+
+  main{max-width:760px;margin:0 auto;padding:20px}
+  .baris{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  label.kelas{font-weight:700}
+  select{padding:10px 12px;border:1.5px solid var(--garis);border-radius:10px;background:#fff;min-width:150px}
+  .jadwal{margin:12px 0 0;padding:10px 14px;border-radius:10px;font-size:.95rem}
+  .jadwal.ya{background:var(--hadir-bg);color:#135C3B}
+  .jadwal.tidak{background:var(--info-bg);color:#6B5100}
+
+  /* Panel pengaturan koneksi */
+  .setel{background:#fff;border:1.5px solid var(--garis);border-radius:14px;padding:20px}
+  .setel h2{margin:0 0 6px}
+  .setel ol{margin:8px 0 14px;padding-left:20px;color:var(--redup);font-size:.93rem}
+  .setel input{width:100%;padding:11px 12px;border:1.5px solid var(--garis);border-radius:10px;background:#fff;font-size:.9rem}
+  .setel .baris{margin-top:12px}
+  #pesanSetel{margin-top:10px;font-size:.92rem}
+  #pesanSetel.galat{color:var(--galat)}
+  #pesanSetel a{color:inherit}
+  .kotak-link{margin-top:14px;padding:14px;border-radius:10px;background:var(--hadir-bg);color:#135C3B;font-size:.92rem}
+  .kotak-link input{margin-top:8px;color:var(--tinta)}
+
+  .pemindai{margin-top:16px;background:var(--papan);border-radius:18px;padding:14px;color:#fff}
+  #reader{position:relative;width:100%;border-radius:12px;overflow:hidden;background:#0f201b;min-height:240px}
+  #reader video{width:100%;height:auto;display:block}
+  #reader video[hidden]{display:none}
+  #overlay{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  #reader .kosong{color:#9FB8AF;padding:90px 20px;text-align:center}
+  .status-kamera{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:.85rem;color:#CFE0DA}
+  .status-kamera b{color:var(--kapur)}
+  ul.log{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+  ul.log li{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#fff;border:1px solid var(--garis);border-radius:10px;padding:8px 12px;font-size:.92rem}
+  ul.log .chip{flex:none;font-size:.75rem;font-weight:700;border-radius:999px;padding:2px 10px}
+  .chip.hadir{background:var(--hadir-bg);color:#0F6E43}
+  .chip.sudah{background:#E4EEF9;color:#1F4E86}
+  .chip.galat{background:var(--galat-bg);color:var(--galat)}
+  .kontrol{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .btn{border:0;border-radius:10px;padding:12px 18px;font-weight:700}
+  .btn-utama{background:var(--kapur);color:#2B2100}
+  .btn-utama:disabled{opacity:.45;cursor:not-allowed}
+  .btn-garis{background:transparent;border:1.5px solid #5E8578;color:#fff}
+  .btn-gelap{background:var(--papan-2);color:#fff}
+
+  #hasil{margin-top:14px;border-radius:14px;padding:18px 18px 16px;background:#fff;border:1.5px solid var(--garis);min-height:92px}
+  #hasil .nama{font-size:1.6rem;font-weight:800;line-height:1.2;letter-spacing:-.01em}
+  #hasil .ket{color:var(--redup);margin-top:4px}
+  #hasil.hadir{background:var(--hadir-bg);border-color:var(--hadir)}
+  #hasil.hadir .nama{color:#0F6E43}
+  #hasil.sudah{background:var(--info-bg);border-color:#E3B530}
+  #hasil.galat{background:var(--galat-bg);border-color:var(--galat)}
+  #hasil.galat .nama{color:var(--galat);font-size:1.15rem}
+  @media (prefers-reduced-motion:no-preference){ #hasil.kedip{animation:kedip .45s ease-out} }
+  @keyframes kedip{from{transform:scale(.97)}to{transform:scale(1)}}
+
+  .manual{display:flex;gap:8px;margin-top:12px}
+  .manual input{flex:1;min-width:0;padding:10px 12px;border:1.5px solid var(--garis);border-radius:10px;background:#fff}
+
+  .daftar-kepala{display:flex;justify-content:space-between;align-items:baseline;margin:28px 0 8px}
+  h2{margin:0;font-size:1.15rem}
+  #hitung{font-weight:800;font-size:1.1rem}
+  #hitung small{font-weight:500;color:var(--redup);font-size:.85rem}
+  .petunjuk{color:var(--redup);font-size:.88rem;margin:0 0 10px}
+  ul#daftar{list-style:none;margin:0;padding:0;border-top:1px solid var(--garis)}
+  #daftar li button{width:100%;display:flex;align-items:center;gap:12px;background:none;border:0;border-bottom:1px solid var(--garis);padding:11px 4px;text-align:left}
+  #daftar .kotak{flex:none;width:24px;height:24px;border:2px solid #A9B5B0;border-radius:6px;display:grid;place-items:center;background:#fff}
+  #daftar li.ok .kotak{background:var(--hadir);border-color:var(--hadir)}
+  #daftar li.ok .kotak::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
+  #daftar .nm{flex:1;font-weight:600}
+  #daftar .nis{color:var(--redup);font-size:.85rem;font-variant-numeric:tabular-nums}
+  #daftar li.baru{background:var(--hadir-bg)}
+  #daftar button:disabled{cursor:default}
+
+  .kartu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-top:16px}
+  .kartu{background:#fff;border:1.5px dashed #A9B5B0;border-radius:12px;padding:14px 10px 12px;text-align:center;break-inside:avoid}
+  .kartu .qr{display:flex;justify-content:center}
+  .kartu .qr img,.kartu .qr canvas{width:160px;height:160px}
+  .kartu .kn{font-weight:700;font-size:.9rem;margin-top:8px;line-height:1.25}
+  .kartu .kk{color:var(--redup);font-size:.78rem}
+
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--tinta);color:#fff;padding:10px 16px;border-radius:10px;font-size:.92rem;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw}
+  .toast.muncul{opacity:1}
+
+  @media print{
+    header,nav,.no-print,.toast{display:none!important}
+    body{background:#fff}
+    main{padding:0;max-width:none}
+    .kartu-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+    .kartu{border-color:#888}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="atas">
+    <h1>Absensi Kelas</h1>
+    <div class="kanan">
+      <div id="tgl"></div>
+      <button id="btnSetel" title="Ganti koneksi spreadsheet">Koneksi</button>
+    </div>
+  </div>
+  <nav role="tablist" id="nav" hidden>
+    <button role="tab" aria-selected="true" data-tab="scan">Scan kehadiran</button>
+    <button role="tab" aria-selected="false" data-tab="qr">Kartu QR siswa</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============ PENGATURAN KONEKSI ============ -->
+  <section id="tab-setel" hidden>
+    <div class="setel">
+      <h2>Hubungkan ke spreadsheet</h2>
+      <p class="petunjuk" style="margin:4px 0 0">Spreadsheet: <b>ABSEN KELAS 11 Lando</b>. Langkah ini hanya sekali per perangkat.</p>
+      <ol>
+        <li>Di spreadsheet: <b>Extensions → Apps Script</b>, tempel <b>Code.gs</b>, simpan, lalu <b>Run tesKoneksi</b> dan klik <b>Allow</b>.</li>
+        <li><b>Deploy → New deployment → Web app</b>. Execute as: <b>Me</b>. Who has access: <b>Anyone</b>. Klik Deploy.</li>
+        <li>Salin URL yang berakhiran <b>/exec</b> (bisa dilihat lagi dari menu spreadsheet <b>Absensi QR → Tampilkan URL Web App</b>).</li>
+        <li>Tempel di bawah, lalu tekan tombol kuning.</li>
+      </ol>
+      <input id="inputUrl" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false">
+      <div class="baris">
+        <button id="btnSimpanUrl" class="btn btn-utama">Simpan &amp; tes koneksi</button>
+      </div>
+      <div id="pesanSetel"></div>
+      <div id="kotakLink" class="kotak-link" hidden>
+        <b>Link siap pakai</b>: sudah berisi koneksi, jadi tidak perlu tes lagi.
+        Simpan sebagai bookmark / ikon layar utama, atau kirim ke HP lain.
+        <input id="linkSiap" readonly>
+        <div class="baris"><button id="btnSalinLink" class="btn btn-gelap">Salin link</button>
+        <button id="btnLanjut" class="btn btn-utama">Lanjut ke scan</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB SCAN ============ -->
+  <section id="tab-scan" hidden>
+    <div class="baris">
+      <label class="kelas" for="kelas">Kelas</label>
+      <select id="kelas"></select>
+    </div>
+    <div id="jadwal" class="jadwal" hidden></div>
+
+    <div class="pemindai">
+      <div id="reader">
+        <video id="video" playsinline muted hidden></video>
+        <canvas id="overlay"></canvas>
+        <div id="kosong" class="kosong">Kamera belum aktif</div>
+      </div>
+      <div class="status-kamera">
+        <span id="modeScan">Arahkan kamera ke beberapa kartu QR sekaligus.</span>
+        <span>QR terlihat: <b id="jumlahTerlihat">0</b></span>
+      </div>
+      <div class="kontrol">
+        <button id="btnKamera" class="btn btn-utama" disabled>Mulai scan</button>
+        <button id="btnGanti" class="btn btn-garis" hidden>Ganti kamera</button>
+      </div>
+    </div>
+
+    <div id="hasil" aria-live="polite">
+      <div class="nama">Siap memindai</div>
+      <div class="ket">Minta beberapa siswa mengangkat kartu QR bersamaan menghadap kamera (jarak 0,5–1,5 m).</div>
+    </div>
+    <ul id="log" class="log"></ul>
+
+    <div class="manual">
+      <input id="inputManual" placeholder="QR rusak? Ketik nama atau NIS" autocomplete="off">
+      <button id="btnManual" class="btn btn-gelap">Absenkan</button>
+    </div>
+
+    <div class="daftar-kepala">
+      <h2>Daftar hadir hari ini</h2>
+      <div id="hitung">0<small> / 0 hadir</small></div>
+    </div>
+    <p class="petunjuk">Ketuk nama untuk menandai atau membatalkan hadir secara manual.</p>
+    <ul id="daftar"></ul>
+  </section>
+
+  <!-- ============ TAB KARTU QR ============ -->
+  <section id="tab-qr" hidden>
+    <div class="baris no-print">
+      <label class="kelas" for="kelasQr">Kelas</label>
+      <select id="kelasQr"></select>
+      <button id="btnCetak" class="btn btn-utama">Cetak kartu</button>
+    </div>
+    <p class="petunjuk no-print" style="margin-top:10px">Setiap QR berisi nama siswa persis seperti di spreadsheet. Cetak, gunting, lalu bagikan ke siswa.</p>
+    <div id="kartu" class="kartu-grid"></div>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status"></div>
+
+<script>
+/* =====================================================================
+   URL Web App Apps Script. Boleh diisi langsung di sini, misalnya:
+   const API_URL_BAWAAN = 'https://script.google.com/macros/s/XXXX/exec';
+   Jika dikosongkan, aplikasi akan meminta URL saat pertama dibuka
+   (disimpan di browser perangkat ini).
+   ===================================================================== */
+const API_URL_BAWAAN = 'https://script.google.com/macros/s/AKfycbz5b4n0n8lYeiQRIZeT0ZjYsa_Ih-bMrpPS9qE8x_fplwM-iCXtTItuS6Gom6ssRgYRqg/exec';
+const KUNCI_URL = 'absensi_api_url';
+let urlSesi = '';
+
+/* URL koneksi disimpan di 3 tempat agar cukup dites SEKALI:
+   1) di link halaman ini (#api=...)  -> ikut tersimpan di bookmark / ikon layar utama / link yang dibagikan
+   2) localStorage browser
+   3) cookie (cadangan jika localStorage dibersihkan) */
+function urlDariLink() {
+  const m = (location.hash || '').match(/[#&]api=([^&]+)/);
+  if (!m) return '';
+  try { return decodeURIComponent(m[1]); } catch (_) { return ''; }
+}
+function urlDariCookie() {
+  const m = document.cookie.match(new RegExp('(?:^|; )' + KUNCI_URL + '=([^;]*)'));
+  if (!m) return '';
+  try { return decodeURIComponent(m[1]); } catch (_) { return ''; }
+}
+function ambilUrl() {
+  if (API_URL_BAWAAN) return API_URL_BAWAAN;
+  if (urlSesi) return urlSesi;
+  let u = urlDariLink();
+  if (!u) { try { u = localStorage.getItem(KUNCI_URL) || ''; } catch (_) {} }
+  if (!u) u = urlDariCookie();
+  if (u) simpanUrl(u); // lengkapi tempat penyimpanan yang lain
+  return u;
+}
+function simpanUrl(u) {
+  urlSesi = u;
+  try { localStorage.setItem(KUNCI_URL, u); } catch (_) {}
+  try { document.cookie = KUNCI_URL + '=' + encodeURIComponent(u) + '; max-age=' + (60 * 60 * 24 * 3650) + '; path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : ''); } catch (_) {}
+  try {
+    if (urlDariLink() !== u) history.replaceState(null, '', location.pathname + location.search + '#api=' + encodeURIComponent(u));
+  } catch (_) {}
+}
+function linkSiapPakai() {
+  return location.origin + location.pathname + '#api=' + encodeURIComponent(ambilUrl());
+}
+
+const PESAN_GAGAL = 'Web App tidak merespons dengan benar. Periksa: (1) Who has access = Anyone, ' +
+  '(2) sudah Deploy dengan "New version", (3) sudah Run tesKoneksi lalu Allow, (4) URL berakhiran /exec.';
+
+/* Komunikasi dengan Apps Script memakai JSONP (tag <script>), sehingga tidak diblokir CORS
+   dan tetap jalan walau file dibuka dari hosting mana pun. */
+let nomorPanggilan = 0;
+function api(action, params, urlKhusus) {
+  const url = (urlKhusus || ambilUrl()).trim();
+  if (!url) return Promise.reject(new Error('URL Web App belum diatur. Tekan tombol "Koneksi".'));
+  return new Promise((ok, gagal) => {
+    const nama = '__absen' + Date.now() + '_' + (nomorPanggilan++);
+    const q = new URLSearchParams();
+    q.set('action', action);
+    Object.keys(params || {}).forEach(k => q.set(k, String(params[k])));
+    q.set('callback', nama);
+    q.set('_', Date.now());
+    const s = document.createElement('script');
+    let selesai = false;
+    const bersih = () => { clearTimeout(t); try { delete window[nama]; } catch (_) { window[nama] = undefined; } s.remove(); };
+    const gagalkan = () => { if (!selesai) { selesai = true; bersih(); gagal(new Error(PESAN_GAGAL)); } };
+    window[nama] = data => { if (selesai) return; selesai = true; bersih(); ok(data); };
+    s.onerror = gagalkan;
+    s.onload = () => setTimeout(gagalkan, 0); // termuat tapi bukan data absensi (mis. halaman login Google)
+    const t = setTimeout(gagalkan, 30000);
+    s.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + q.toString();
+    document.head.appendChild(s);
+  });
+}
+
+const $ = id => document.getElementById(id);
+const state = { kelas: null, adaJadwal: false, siswa: [], scanner: null, kamera: [], idxKamera: 0,
+                sibuk: false, terakhir: { kode: '', waktu: 0 }, tabAktif: 'scan' };
+
+/* ---------- Navigasi ---------- */
+function tampilkan(tab) {
+  state.tabAktif = tab;
+  $('tab-setel').hidden = tab !== 'setel';
+  $('tab-scan').hidden = tab !== 'scan';
+  $('tab-qr').hidden = tab !== 'qr';
+  $('nav').hidden = tab === 'setel';
+  document.querySelectorAll('nav button').forEach(x => x.setAttribute('aria-selected', x.dataset.tab === tab));
+}
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+  tampilkan(b.dataset.tab);
+  if (b.dataset.tab === 'qr') { hentikanKamera(); buatKartu(); }
+}));
+$('btnSetel').addEventListener('click', () => {
+  hentikanKamera();
+  $('inputUrl').value = ambilUrl();
+  $('pesanSetel').textContent = API_URL_BAWAAN ? 'URL sudah ditanam di kode (API_URL_BAWAAN).' : '';
+  $('kotakLink').hidden = true;
+  if (ambilUrl()) tampilLinkSiapPakai();
+  tampilkan('setel');
+});
+
+$('btnSimpanUrl').addEventListener('click', async () => {
+  const u = $('inputUrl').value.trim();
+  const p = $('pesanSetel');
+  p.className = '';
+  if (!/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[^/]+\/(exec|dev)\/?$/.test(u)) {
+    p.className = 'galat';
+    p.textContent = 'Format URL tidak sesuai. Contoh: https://script.google.com/macros/s/AKfy.../exec';
+    return;
+  }
+  if (/\/dev\/?$/.test(u)) {
+    p.className = 'galat';
+    p.textContent = 'Ini URL /dev (hanya untuk uji coba pemilik). Gunakan URL yang berakhiran /exec dari Deploy → Manage deployments.';
+    return;
+  }
+  p.textContent = 'Menguji koneksi…';
+  try {
+    const r = await api('kelas', {}, u);
+    if (!r.ok) throw new Error(r.pesan);
+    simpanUrl(u);
+    p.innerHTML = `Terhubung ke "${esc(r.spreadsheet || 'spreadsheet')}". Ditemukan ${r.kelas.length} kelas.`;
+    tampilLinkSiapPakai();
+  } catch (e) {
+    p.className = 'galat';
+    p.innerHTML = 'Gagal terhubung: ' + esc(pesanGalat(e)) +
+      '<br>Cek: buka <a href="' + esc(u) + '" target="_blank" rel="noopener">URL ini di tab baru</a>. Harus muncul tulisan <b>Web App Absensi AKTIF</b>.';
+  }
+});
+
+function tampilLinkSiapPakai() {
+  $('linkSiap').value = linkSiapPakai();
+  $('kotakLink').hidden = false;
+}
+$('btnSalinLink').addEventListener('click', async () => {
+  const t = $('linkSiap').value;
+  try { await navigator.clipboard.writeText(t); }
+  catch (_) { $('linkSiap').select(); try { document.execCommand('copy'); } catch (__) {} }
+  toast('Link disalin.');
+});
+$('btnLanjut').addEventListener('click', () => mulai());
+
+/* ---------- Awal ---------- */
+async function mulai() {
+  if (!ambilUrl()) { $('btnSetel').click(); return; }
+  tampilkan('scan');
+  try {
+    const r = await api('kelas');
+    if (!r.ok) throw new Error(r.pesan);
+    if (!r.kelas.length) throw new Error('Terhubung, tetapi tidak ada sheet yang punya kolom "NAMA".');
+    $('tgl').textContent = r.tanggal;
+    $('kelas').innerHTML = r.kelas.map(k =>
+      `<option value="${esc(k.nama)}">${esc(k.nama)}${k.adaJadwal ? ' • jadwal hari ini' : ''}</option>`).join('');
+    $('kelasQr').innerHTML = r.kelas.map(k => `<option value="${esc(k.nama)}">${esc(k.nama)}</option>`).join('');
+    const hariIni = r.kelas.find(k => k.adaJadwal);
+    if (hariIni) $('kelas').value = hariIni.nama;
+    await muatKelas();
+  } catch (e) {
+    tampilHasil('galat', 'Gagal terhubung ke spreadsheet', pesanGalat(e) + ' Periksa lewat tombol "Koneksi".');
+  }
+}
+
+$('kelas').addEventListener('change', muatKelas);
+
+async function muatKelas() {
+  if (state.kelas !== $('kelas').value) resetPemindaian();
+  state.kelas = $('kelas').value;
+  $('btnKamera').disabled = true;
+  $('daftar').innerHTML = '<li style="padding:12px 4px;color:var(--redup)">Memuat daftar siswa…</li>';
+  try {
+    const r = await api('siswa', { kelas: state.kelas });
+    if (!r.ok) throw new Error(r.pesan);
+    state.adaJadwal = r.adaJadwal;
+    state.siswa = r.siswa;
+    const j = $('jadwal');
+    j.hidden = false;
+    if (r.adaJadwal) {
+      j.className = 'jadwal ya';
+      j.textContent = `Hari ini jadwal ${r.kelas}, pertemuan ke-${r.pertemuanKe}. Scan akan mencentang kolom tanggal hari ini.`;
+    } else {
+      j.className = 'jadwal tidak';
+      j.textContent = `${r.kelas} tidak punya jadwal hari ini, jadi absen tidak bisa dicatat. Pilih kelas yang bertanda "jadwal hari ini".`;
+      hentikanKamera();
+    }
+    $('btnKamera').disabled = !r.adaJadwal;
+    renderDaftar();
+  } catch (e) {
+    $('daftar').innerHTML = '';
+    tampilHasil('galat', 'Daftar siswa tidak bisa dimuat', pesanGalat(e));
+  }
+}
+
+/* ---------- Daftar hadir ---------- */
+function renderDaftar(namaBaru) {
+  const baru = new Set([].concat(namaBaru || []));
+  $('daftar').innerHTML = state.siswa.map(s => `
+    <li class="${s.hadir ? 'ok' : ''} ${baru.has(s.nama) ? 'baru' : ''}">
+      <button data-nama="${esc(s.nama)}" ${state.adaJadwal ? '' : 'disabled'}
+        aria-label="${esc(s.nama)}, ${s.hadir ? 'hadir' : 'belum hadir'}">
+        <span class="kotak"></span><span class="nm">${esc(s.nama)}</span><span class="nis">${esc(s.nis)}</span>
+      </button></li>`).join('');
+  const n = state.siswa.filter(s => s.hadir).length;
+  $('hitung').innerHTML = `${n}<small> / ${state.siswa.length} hadir</small>`;
+}
+
+$('daftar').addEventListener('click', async ev => {
+  const b = ev.target.closest('button[data-nama]');
+  if (!b || !state.adaJadwal) return;
+  const s = state.siswa.find(x => x.nama === b.dataset.nama);
+  const baru = !s.hadir;
+  s.hadir = baru; renderDaftar();
+  try {
+    const r = await api('set', { kelas: state.kelas, nama: s.nama, hadir: baru });
+    if (!r.ok) throw new Error(r.pesan);
+    toast(r.pesan);
+    if (!baru) { for (const [k, v] of dikenal) if (v.nama === s.nama) dikenal.delete(k); } // boleh discan ulang
+  } catch (e) {
+    s.hadir = !baru; renderDaftar();
+    toast('Gagal menyimpan: ' + pesanGalat(e));
+  }
+});
+
+/* ---------- Antrean absen: banyak QR dikirim dalam satu paket ---------- */
+const dikenal = new Map();  // kode QR -> { status: proses|hadir|sudah|galat, nama, pesan, waktu }
+const antrian = new Set();
+let tKirim = null, mengirim = false;
+
+function resetPemindaian() { dikenal.clear(); antrian.clear(); $('log').innerHTML = ''; }
+
+function tangkap(kode, paksa) {
+  kode = String(kode || '').trim();
+  if (!kode || !state.adaJadwal) return;
+  const k = dikenal.get(kode);
+  if (!paksa && k && (k.status !== 'galat' || Date.now() - k.waktu < 6000)) return; // sudah diproses
+  dikenal.set(kode, { status: 'proses', waktu: Date.now() });
+  antrian.add(kode);
+  if (!tKirim) tKirim = setTimeout(kirimAntrian, 350); // kumpulkan QR yang muncul bersamaan
+}
+
+async function kirimAntrian() {
+  tKirim = null;
+  if (mengirim || !antrian.size) return;
+  mengirim = true;
+  const kodes = [...antrian]; antrian.clear();
+  tampilHasil('', `Menyimpan ${kodes.length} QR…`, 'Mengirim ke spreadsheet.');
+  try {
+    const r = await api('absenBanyak', { kelas: state.kelas, kode: JSON.stringify(kodes) });
+    if (!r.ok) throw new Error(r.pesan);
+    const baru = [], sudah = [], galat = [];
+    r.hasil.forEach(x => {
+      const status = x.status === 'hadir' ? 'hadir' : x.status === 'sudah' ? 'sudah' : 'galat';
+      dikenal.set(x.kode, { status, nama: x.nama, pesan: x.pesan, waktu: Date.now() });
+      if (status !== 'galat') { const s = state.siswa.find(y => y.nama === x.nama); if (s) s.hadir = true; }
+      (status === 'hadir' ? baru : status === 'sudah' ? sudah : galat).push(x);
+      tambahLog(status, status === 'galat' ? x.pesan : x.nama);
+    });
+    renderDaftar(baru.map(x => x.nama));
+    if (baru.length) {
+      tampilHasil('hadir', `${baru.length} siswa tercatat hadir`, baru.map(x => x.nama).join(', ') +
+        (galat.length ? ` · ${galat.length} ditolak` : ''));
+      bunyi(true);
+    } else if (galat.length) {
+      tampilHasil('galat', galat[0].pesan, galat.length > 1 ? `dan ${galat.length - 1} QR lain ditolak.` : 'Tidak ada yang dicentang.');
+      bunyi(false);
+    } else {
+      tampilHasil('sudah', sudah.map(x => x.nama).join(', '), 'Sudah diabsen sebelumnya, tidak dicatat dua kali.');
+      bunyi(true, true);
+    }
+  } catch (e) {
+    kodes.forEach(k => dikenal.set(k, { status: 'galat', pesan: pesanGalat(e), waktu: Date.now() }));
+    tampilHasil('galat', 'Gagal menyimpan', pesanGalat(e));
+    bunyi(false);
+  } finally {
+    mengirim = false;
+    if (antrian.size) tKirim = setTimeout(kirimAntrian, 150);
+  }
+}
+
+function tambahLog(status, teks) {
+  const label = { hadir: 'Hadir', sudah: 'Sudah', galat: 'Ditolak' }[status];
+  const li = document.createElement('li');
+  li.innerHTML = `<span>${esc(teks)}</span><span class="chip ${status}">${label}</span>`;
+  $('log').prepend(li);
+  while ($('log').children.length > 8) $('log').lastChild.remove();
+}
+
+$('btnManual').addEventListener('click', () => { tangkap($('inputManual').value, true); $('inputManual').value = ''; });
+$('inputManual').addEventListener('keydown', e => { if (e.key === 'Enter') $('btnManual').click(); });
+
+/* ---------- Kamera & deteksi banyak QR ---------- */
+const kam = { stream: null, timer: null, detektor: null, putaran: 0, kanvas: document.createElement('canvas'), deviceId: null };
+
+$('btnKamera').addEventListener('click', () => kam.stream ? hentikanKamera() : nyalakanKamera());
+$('btnGanti').addEventListener('click', async () => {
+  if (state.kamera.length < 2) return;
+  state.idxKamera = (state.idxKamera + 1) % state.kamera.length;
+  await hentikanKamera();
+  nyalakanKamera(state.kamera[state.idxKamera].deviceId);
+});
+
+function jelaskanGalatKamera(e) {
+  const n = (e && e.name) || '';
+  if (n === 'NotAllowedError' || n === 'SecurityError')
+    return 'Izin kamera ditolak. Ketuk ikon di kiri alamat situs → Izin / Setelan situs → Kamera → Izinkan, lalu tekan Mulai scan lagi.';
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'Kamera tidak ditemukan di perangkat ini.';
+  if (n === 'NotReadableError') return 'Kamera sedang dipakai aplikasi lain (mis. Zoom atau WhatsApp). Tutup aplikasi itu lalu coba lagi.';
+  return pesanGalat(e);
+}
+
+async function siapkanDetektor() {
+  // Detektor bawaan browser (Chrome Android): cepat & membaca banyak QR per bingkai
+  if ('BarcodeDetector' in window) {
+    try {
+      const f = await BarcodeDetector.getSupportedFormats();
+      if (f.includes('qr_code')) return new BarcodeDetector({ formats: ['qr_code'] });
+    } catch (_) {}
+  }
+  return null; // cadangan: jsQR per potongan gambar
+}
+
+async function nyalakanKamera(deviceId) {
+  $('btnKamera').disabled = true;
+  tampilHasil('', 'Meminta izin kamera…', 'Pilih "Izinkan" pada pop-up browser.');
+  try {
+    if (!window.isSecureContext) throw Object.assign(new Error('Halaman harus dibuka lewat https:// agar kamera bisa dipakai.'), { name: 'Insecure' });
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+      throw Object.assign(new Error('Browser ini tidak mendukung kamera. Gunakan Chrome terbaru.'), { name: 'Unsupported' });
+
+    const video = deviceId
+      ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+      : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } };
+    kam.stream = await navigator.mediaDevices.getUserMedia({ video, audio: false }); // memunculkan izin kamera
+
+    const track = kam.stream.getVideoTracks()[0];
+    try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (_) {}
+
+    const v = $('video');
+    v.srcObject = kam.stream;
+    v.hidden = false; $('kosong').hidden = true;
+    await v.play();
+
+    kam.detektor = await siapkanDetektor();
+    if (typeof jsQR === 'undefined' && !kam.detektor) throw new Error('Mesin pemindai gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.');
+    $('modeScan').innerHTML = kam.detektor
+      ? 'Mode: <b>multi-QR cepat</b> (detektor bawaan)'
+      : 'Mode: <b>multi-QR kompatibel</b>';
+
+    try {
+      state.kamera = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      $('btnGanti').hidden = state.kamera.length < 2;
+    } catch (_) {}
+
+    $('btnKamera').textContent = 'Hentikan scan';
+    tampilHasil('', 'Kamera aktif', 'Arahkan ke beberapa kartu QR sekaligus. Semua QR yang terlihat akan dibaca.');
+    kam.putaran = 0;
+    putaranDeteksi();
+  } catch (e) {
+    await hentikanKamera();
+    tampilHasil('galat', 'Kamera tidak bisa dibuka', jelaskanGalatKamera(e));
+  } finally {
+    $('btnKamera').disabled = !state.adaJadwal;
+  }
+}
+
+async function putaranDeteksi() {
+  if (!kam.stream) return;
+  const v = $('video');
+  let temuan = [];
+  try {
+    if (v.readyState >= 2 && v.videoWidth) {
+      temuan = kam.detektor ? await deteksiBawaan(v) : deteksiJsQR(v, [1, 2, 3][kam.putaran % 3]);
+      kam.putaran++;
+    }
+  } catch (_) {}
+  temuan.forEach(t => tangkap(t.teks));
+  gambarOverlay(temuan);
+  $('jumlahTerlihat').textContent = temuan.length;
+  if (kam.stream) kam.timer = setTimeout(putaranDeteksi, kam.detektor ? 120 : 40);
+}
+
+async function deteksiBawaan(v) {
+  const hs = await kam.detektor.detect(v);
+  return hs.filter(b => b.rawValue).map(b => ({ teks: b.rawValue, titik: b.cornerPoints }));
+}
+
+/* Cadangan: gambar dipotong grid n×n (bergantian 1×1, 2×2, 3×3) dengan tumpang-tindih,
+   tiap potongan dipindai jsQR -> beberapa QR di bingkai yang sama tetap terbaca. */
+function deteksiJsQR(v, n) {
+  if (typeof jsQR === 'undefined') return [];
+  const W = v.videoWidth, H = v.videoHeight;
+  const skala = Math.min(1, 1280 / Math.max(W, H));
+  const w = Math.round(W * skala), h = Math.round(H * skala);
+  const c = kam.kanvas; c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(v, 0, 0, w, h);
+  const peta = new Map();
+  const tw = w / n, th = h / n, ow = n > 1 ? tw * 0.3 : 0, oh = n > 1 ? th * 0.3 : 0;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const x = Math.max(0, Math.floor(i * tw - ow)), y = Math.max(0, Math.floor(j * th - oh));
+    const x2 = Math.min(w, Math.ceil((i + 1) * tw + ow)), y2 = Math.min(h, Math.ceil((j + 1) * th + oh));
+    const img = ctx.getImageData(x, y, x2 - x, y2 - y);
+    const r = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+    if (r && r.data && !peta.has(r.data)) {
+      const L = r.location, k = pt => ({ x: (pt.x + x) / skala, y: (pt.y + y) / skala });
+      peta.set(r.data, { teks: r.data, titik: [k(L.topLeftCorner), k(L.topRightCorner), k(L.bottomRightCorner), k(L.bottomLeftCorner)] });
+    }
+  }
+  return [...peta.values()];
+}
+
+const WARNA = { proses: '#F6C744', hadir: '#1F9D63', sudah: '#3B82C4', galat: '#C93C3C' };
+function gambarOverlay(temuan) {
+  const v = $('video'), c = $('overlay');
+  const cw = v.clientWidth, ch = v.clientHeight;
+  if (c.width !== cw || c.height !== ch) { c.width = cw; c.height = ch; }
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, cw, ch);
+  if (!v.videoWidth) return;
+  const sx = cw / v.videoWidth, sy = ch / v.videoHeight;
+  ctx.font = '600 13px "Plus Jakarta Sans", system-ui, sans-serif';
+  temuan.forEach(t => {
+    if (!t.titik || !t.titik.length) return;
+    const info = dikenal.get(String(t.teks).trim()) || { status: 'proses' };
+    const warna = WARNA[info.status] || WARNA.proses;
+    ctx.lineWidth = 4; ctx.strokeStyle = warna;
+    ctx.beginPath();
+    t.titik.forEach((p, i) => i ? ctx.lineTo(p.x * sx, p.y * sy) : ctx.moveTo(p.x * sx, p.y * sy));
+    ctx.closePath(); ctx.stroke();
+    const label = info.nama || t.teks;
+    const minX = Math.min(...t.titik.map(p => p.x * sx)), minY = Math.min(...t.titik.map(p => p.y * sy));
+    const lw = ctx.measureText(label).width + 12;
+    const ly = Math.max(0, minY - 22);
+    ctx.fillStyle = warna; ctx.fillRect(minX, ly, lw, 20);
+    ctx.fillStyle = info.status === 'proses' ? '#2B2100' : '#fff';
+    ctx.fillText(label, minX + 6, ly + 14);
+  });
+}
+
+async function hentikanKamera() {
+  clearTimeout(kam.timer);
+  if (kam.stream) { kam.stream.getTracks().forEach(t => t.stop()); kam.stream = null; }
+  const v = $('video'); v.srcObject = null; v.hidden = true;
+  $('kosong').hidden = false;
+  const c = $('overlay'); c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  $('jumlahTerlihat').textContent = '0';
+  $('btnKamera').textContent = 'Mulai scan';
+  $('btnGanti').hidden = true;
+}
+
+/* ---------- Kartu QR ---------- */
+$('kelasQr').addEventListener('change', buatKartu);
+$('btnCetak').addEventListener('click', () => window.print());
+
+async function buatKartu() {
+  const kelas = $('kelasQr').value;
+  if (!kelas) return;
+  $('kartu').innerHTML = '<p class="petunjuk">Membuat kartu…</p>';
+  try {
+    const r = await api('siswa', { kelas });
+    if (!r.ok) throw new Error(r.pesan);
+    $('kartu').innerHTML = '';
+    r.siswa.forEach(s => {
+      const k = document.createElement('div');
+      k.className = 'kartu';
+      k.innerHTML = `<div class="qr"></div><div class="kn">${esc(s.nama)}</div><div class="kk">${esc(kelas)} · NIS ${esc(s.nis)}</div>`;
+      $('kartu').appendChild(k);
+      new QRCode(k.querySelector('.qr'), { text: s.nama, width: 280, height: 280, correctLevel: QRCode.CorrectLevel.M });
+    });
+  } catch (e) {
+    $('kartu').innerHTML = `<p class="petunjuk">Gagal memuat: ${esc(pesanGalat(e))}</p>`;
+  }
+}
+
+/* ---------- Util ---------- */
+function tampilHasil(jenis, judul, ket) {
+  const h = $('hasil');
+  h.className = jenis;
+  h.innerHTML = `<div class="nama">${esc(judul)}</div><div class="ket">${esc(ket)}</div>`;
+  void h.offsetWidth; h.classList.add('kedip');
+}
+function toast(t) {
+  const el = $('toast'); el.textContent = t; el.classList.add('muncul');
+  clearTimeout(toast._t); toast._t = setTimeout(() => el.classList.remove('muncul'), 2500);
+}
+let ctxAudio;
+function bunyi(sukses, pelan) {
+  try {
+    ctxAudio = ctxAudio || new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctxAudio.createOscillator(), g = ctxAudio.createGain();
+    o.frequency.value = sukses ? (pelan ? 660 : 1046) : 220;
+    o.type = sukses ? 'sine' : 'square';
+    g.gain.value = 0.12;
+    o.connect(g); g.connect(ctxAudio.destination);
+    o.start(); o.stop(ctxAudio.currentTime + (sukses ? 0.15 : 0.35));
+    if (navigator.vibrate) navigator.vibrate(sukses ? 80 : [60, 60, 60]);
+  } catch (_) {}
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function pesanGalat(e) { return (e && (e.message || e.toString())) || 'Kesalahan tidak diketahui'; }
+
+// Segarkan daftar saat kembali ke aplikasi (mis. setelah membuka spreadsheet)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && state.kelas && !kam.stream && state.tabAktif === 'scan') muatKelas();
+});
+
+mulai();
+</script>
+</body>
+</html>
